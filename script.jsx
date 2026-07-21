@@ -1320,21 +1320,35 @@ function App() {
 
         let msgWppStatus = '';
         if (tipo === 'fiado') {
+          const idCredGerado = Date.now();
+          const itensParaSalvar = comandaAtual.itens.map((i) => ({
+            nome: i.nome,
+            qtd: i.qtd,
+            preco: i.preco,
+          }));
+
           setCrediarios([
             ...crediarios,
             {
-              idCred: Date.now(),
+              idCred: idCredGerado,
               data: new Date().toLocaleString('pt-BR'),
               cliente: comandaAtual.nome,
               total: totalCobranca,
               status: 'Pendente',
-              itensConsumidos: comandaAtual.itens.map((i) => ({
-                nome: i.nome,
-                qtd: i.qtd,
-                preco: i.preco,
-              })),
+              itensConsumidos: itensParaSalvar,
             },
           ]);
+
+          // ☁️ ENXERTO CIRÚRGICO: AGORA O BOTÃO PRINCIPAL TAMBÉM MANDA PRA NUVEM!
+          supabaseClient.from('crediarios').insert([{
+            id_cred: idCredGerado,
+            data: new Date().toLocaleString('pt-BR'),
+            cliente: comandaAtual.nome,
+            total: totalCobranca,
+            status: 'Pendente',
+            itens_consumidos: itensParaSalvar
+          }]).then(() => console.log('Fiado direto salvo na nuvem com sucesso!'))
+          .catch(err => console.error(err));
 
           const dadosDoCliente = clientesCadastrados.find(
             (c) => c.nome.toLowerCase() === comandaAtual.nome.toLowerCase()
@@ -3567,6 +3581,8 @@ function App() {
           <button
             onClick={() => {
               const id = Date.now();
+              
+              // 1. Salva na tela do PC
               setProdutos([
                 ...produtos,
                 {
@@ -3580,6 +3596,19 @@ function App() {
                 },
               ]);
               setIdProdutoSelecionadoEdicao(id);
+
+              // 2. ☁️ ENXERTO CIRÚRGICO: Cria a linha base na nuvem do Supabase!
+              supabaseClient.from('produtos').insert([{
+                id: id,
+                nome: 'Novo Produto',
+                category: 'Geral',
+                preco: 0,
+                preco_custo: 0,
+                estoque: 0,
+                estoque_minimo: 0,
+                imagem: ''
+              }]).then(() => console.log('Produto base criado na nuvem!'))
+              .catch(err => console.error('Erro ao criar produto na nuvem:', err));
             }}
             style={{ ...styleBtn, background: '#3b82f6' }}
           >
